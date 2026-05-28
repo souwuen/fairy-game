@@ -8,6 +8,7 @@
 #include "map.h"
 #include "physics.h"
 #include "coin.h"
+#include "spike.h"
 
 using namespace sf;
 using namespace std;
@@ -32,16 +33,43 @@ int main()
     Map map;
     physics phys;
 
+    // 💰 МОНЕТЫ
     Texture coinTexture;
     coinTexture.loadFromFile("images/coin.png");
 
-    vector<Coin> coins;
-    coins.push_back(Coin(coinTexture, 200, 300));
-    coins.push_back(Coin(coinTexture, 300, 250));
-    coins.push_back(Coin(coinTexture, 400, 200));
+    vector<Coin> coins = {
+        Coin(coinTexture, 200, 300),
+        Coin(coinTexture, 300, 250),
+        Coin(coinTexture, 400, 200)
+    };
 
     int coinsCollected = 0;
 
+    // 💀 ШИПЫ
+    Texture spikeTexture;
+    spikeTexture.loadFromFile("images/spike.png");
+
+    vector<Spike> spikes;
+
+    float spikeScale = 0.12f;
+
+    // реальный размер
+    float spikeWidth = spikeTexture.getSize().x * spikeScale;
+
+    // ❗ СТАВИМ ЧУТЬ НИЖЕ, ЧЕМ ВЫСОТА ЭКРАНА
+    float spikeY = 480 - (spikeTexture.getSize().y * spikeScale) + 10;
+
+    // 👉 только 2 шипа (как ты просила)
+    float startSpikeX = 260;
+
+    for (int i = 0; i < 2; i++)
+    {
+        Spike s(spikeTexture, startSpikeX + i * (spikeWidth + 2), spikeY);
+        s.sprite.setScale(spikeScale, spikeScale);
+        spikes.push_back(s);
+    }
+
+    // 💰 ИКОНКИ
     vector<Sprite> coinIcons;
 
     int frameW = coinTexture.getSize().x / 6;
@@ -52,20 +80,21 @@ int main()
         Sprite icon(coinTexture);
         icon.setTextureRect(IntRect(0, 0, frameW, frameH));
 
-        float scale = 50.0f / frameW;
-        icon.setScale(scale, scale);
+        float iconScale = 50.0f / frameW;
+        icon.setScale(iconScale, iconScale);
 
         icon.setPosition(235 + i * 60, 70);
-
         coinIcons.push_back(icon);
     }
 
+    // 🚪 ПОРТАЛ
     Texture exitTexture;
     exitTexture.loadFromFile("images/exit.png");
     Sprite exitSprite(exitTexture);
     exitSprite.setPosition(10, 10);
     exitSprite.setScale(0.15f, 0.15f);
 
+    // 📜 МЕНЮ
     Texture menuTexture;
     menuTexture.loadFromFile("images/menu.png");
     Sprite menuSprite(menuTexture);
@@ -87,21 +116,13 @@ int main()
     Texture& fontTex = const_cast<Texture&>(font.getTexture(32));
     fontTex.setSmooth(false);
 
-    Text nextText;
-    nextText.setFont(font);
-    nextText.setString("NEXT LEVEL");
-    nextText.setCharacterSize(32);
+    Text nextText("NEXT LEVEL", font, 32);
     nextText.setFillColor(Color(226, 125, 145));
-
     nextText.setOutlineColor(Color::Black);
     nextText.setOutlineThickness(2);
 
-    Text restartText;
-    restartText.setFont(font);
-    restartText.setString("RESTART");
-    restartText.setCharacterSize(32);
+    Text restartText("RESTART", font, 32);
     restartText.setFillColor(Color(52, 183, 250));
-
     restartText.setOutlineColor(Color::Black);
     restartText.setOutlineThickness(2);
 
@@ -118,19 +139,19 @@ int main()
     float CurrentFrame = 0;
     Clock clock;
 
+    // 🌄 ФОН
     Texture bgTexture;
     bgTexture.loadFromFile("images/background.png");
     Sprite background(bgTexture);
 
     float scaleX = (float)window.getSize().x / bgTexture.getSize().x;
     float scaleY = (float)window.getSize().y / bgTexture.getSize().y;
-    float scale = max(scaleX, scaleY);
-    background.setScale(scale, scale);
+    float bgScale = max(scaleX, scaleY); // ← фикс имени
+    background.setScale(bgScale, bgScale);
 
     while (window.isOpen())
     {
-        float time = clock.getElapsedTime().asSeconds();
-        clock.restart();
+        float time = clock.restart().asSeconds();
 
         Event event;
         while (window.pollEvent(event))
@@ -154,7 +175,6 @@ int main()
                         coin.collected = false;
 
                     phys = physics();
-
                     levelComplete = false;
                 }
             }
@@ -196,6 +216,7 @@ int main()
         if (!levelComplete)
             phys.update(p, time, map);
 
+        // 💰 МОНЕТЫ
         for (auto& coin : coins)
         {
             coin.update(time, coinTexture);
@@ -208,6 +229,26 @@ int main()
             }
         }
 
+        // 💀 ШИПЫ
+        for (auto& spike : spikes)
+        {
+            if (spike.checkCollision(
+                p.x, p.y,
+                p.sprite.getGlobalBounds().width,
+                p.sprite.getGlobalBounds().height))
+            {
+                p.x = startX;
+                p.y = startY;
+                p.sprite.setPosition(p.x, p.y);
+
+                coinsCollected = 0;
+
+                for (auto& coin : coins)
+                    coin.collected = false;
+            }
+        }
+
+        // 🚪 ВЫХОД
         if (!levelComplete &&
             p.sprite.getGlobalBounds().intersects(exitSprite.getGlobalBounds()))
         {
@@ -224,6 +265,9 @@ int main()
             for (auto& coin : coins)
                 if (!coin.collected)
                     window.draw(coin.sprite);
+
+            for (auto& spike : spikes)
+                spike.draw(window);
 
             window.draw(exitSprite);
             window.draw(p.sprite);
