@@ -3,8 +3,8 @@
 #include "player.h"
 #include "map.h"
 #include "physics.h"
-#include "coin.h"
-#include <vector>
+#include <iostream>   
+#include <SFML/Audio.hpp>
 
 using namespace sf;
 using namespace std;
@@ -12,9 +12,24 @@ using namespace std;
 int main()
 {
     RenderWindow window(VideoMode(640, 480), "Fairy");
+    
+    Music music;
+    if (!music.openFromFile("C:/fairy-game/sounds/background_2_music.ogg"))
+    {
+        cout << "ОШИБКА: Музыка не загрузилась!" << endl;
+    }
+    else
+    {
+        music.setLoop(true);  // Зацикливание
+        music.setVolume(30);  // Громкость 30%
+        music.play();
+        cout << "Музыка играет!" << endl;
+    }
+    // ============================
 
-    float startX = 0; 
-    float playerH = 144 * 0.3f; 
+    float startX = 0;
+
+    float playerH = 144 * 0.3f;
     float startY = (Map::HEIGHT - 2) * Map::TILE_SIZE - playerH;
 
     Player p("hero.png", startX, startY, 144, 144);
@@ -22,7 +37,7 @@ int main()
     Map map;
     physics phys;
 
-    // монеты
+    // текстура монет
     Texture coinTexture;
     coinTexture.loadFromFile("images/coin.png");
 
@@ -30,36 +45,6 @@ int main()
     coins.push_back(Coin(coinTexture, 200, 300));
     coins.push_back(Coin(coinTexture, 300, 250));
     coins.push_back(Coin(coinTexture, 400, 200));
-
-    // 🔥 ПОРТАЛ
-    Texture exitTexture;
-    exitTexture.loadFromFile("images/exit.png");
-    Sprite exitSprite(exitTexture);
-    exitSprite.setPosition(10, 10);
-    exitSprite.setScale(0.15f, 0.15f);
-
-    // 🔥 МЕНЮ
-    Texture menuTexture;
-    menuTexture.loadFromFile("images/menu.png");
-    Sprite menuSprite(menuTexture);
-
-    float menuScale = 0.4f;
-    menuSprite.setScale(menuScale, menuScale);
-
-    float menuW = menuTexture.getSize().x * menuScale;
-    float menuH = menuTexture.getSize().y * menuScale;
-
-    menuSprite.setPosition(
-        (640 - menuW) / 2,
-        (480 - menuH) / 2
-    );
-
-    // 🔥 затемнение
-    RectangleShape darkOverlay;
-    darkOverlay.setSize(Vector2f(640, 480));
-    darkOverlay.setFillColor(Color(0, 0, 0, 150));
-
-    bool levelComplete = false;
 
     float CurrentFrame = 0;
     Clock clock;
@@ -75,7 +60,7 @@ int main()
 
     while (window.isOpen())
     {
-        float time = clock.getElapsedTime().asSeconds(); 
+        float time = clock.getElapsedTime().asSeconds(); // ✅ НОРМАЛЬНОЕ ВРЕМЯ
         clock.restart();
 
         Event event;
@@ -125,10 +110,10 @@ int main()
             p.sprite.setTextureRect(IntRect(144 * int(CurrentFrame), 0, 144, 144));
         }
 
-        if (!levelComplete)
-            phys.update(p, time, map);
+        // ФИЗИКА
+        phys.update(p, time, map);
 
-        // монеты
+        // МОНЕТЫ
         for (auto& coin : coins)
         {
             coin.update(time, coinTexture);
@@ -163,30 +148,18 @@ int main()
         p.y = y;
         p.sprite.setPosition(p.x, p.y);
 
-        // 🎮 РЕНДЕР
+        // РЕНДЕР
         window.clear();
+        window.draw(background);
+        map.draw(window);
 
-        if (!levelComplete)
+        for (auto& coin : coins)
         {
-            window.draw(background);
-            map.draw(window);
-
-            for (auto& coin : coins)
-            {
-                if (!coin.collected)
-                    window.draw(coin.sprite);
-            }
-
-            window.draw(exitSprite);
-            window.draw(p.sprite);
-        }
-        else
-        {
-            window.draw(background);   // только фон
-            window.draw(darkOverlay);  // затемнение
-            window.draw(menuSprite);   // меню
+            if (!coin.collected)
+                window.draw(coin.sprite);
         }
 
+        window.draw(p.sprite);
         window.display();
     }
 

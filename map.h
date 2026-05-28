@@ -13,7 +13,6 @@ public:
     static const int TILE_SIZE = 24;
 
     Texture t_ground, t_grass, t_platform;
-    Sprite tile;
 
     Map();
 

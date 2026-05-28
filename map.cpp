@@ -1,4 +1,4 @@
-#include "map.h"
+﻿#include "map.h"
 
 Map::Map()
 {
@@ -16,7 +16,7 @@ Map::Map()
         {1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
         {1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
         {0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,0,0,0,0,0,0,0,0,0,0},       
+        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,0,0,0,0,0,0,0,0,0,0},
         {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
         {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,2,2,2,2,2},
         {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,1,1,1,1,1,1,1,1,1},
@@ -32,9 +32,25 @@ Map::Map()
     t_ground.loadFromFile("images/ground.png");
     t_grass.loadFromFile("images/grass_block.png");
     t_platform.loadFromFile("images/platform.png");
-}
 
-void Map::draw(RenderWindow& window)
+    if (t_ground.getSize().x == 0) {
+        Image img;
+        img.create(24, 24, Color(139, 69, 19));
+        t_ground.loadFromImage(img);
+    }
+    if (t_grass.getSize().x == 0) {
+        Image img;
+        img.create(24, 24, Color(34, 139, 34));
+        t_grass.loadFromImage(img);
+    }
+    if (t_platform.getSize().x == 0) {
+        Image img;
+        img.create(24, 24, Color(160, 82, 45));
+        t_platform.loadFromImage(img);
+    }
+} // ← закрывает конструктор Map::Map()
+
+void Map::draw(RenderWindow& window) // БЕЗ точки с запятой!
 {
     for (int i = 0; i < HEIGHT; i++)
     {
@@ -42,6 +58,7 @@ void Map::draw(RenderWindow& window)
         {
             if (TileMap[i][j] == 0) continue;
 
+            Sprite tileSprite;
             Texture* currentTexture = nullptr;
 
             if (TileMap[i][j] == 1) currentTexture = &t_ground;
@@ -50,15 +67,16 @@ void Map::draw(RenderWindow& window)
 
             if (currentTexture)
             {
-                tile.setTexture(*currentTexture);
+                currentTexture->setSmooth(false);
+                tileSprite.setTexture(*currentTexture);
 
                 float scaleX = (float)TILE_SIZE / currentTexture->getSize().x;
                 float scaleY = (float)TILE_SIZE / currentTexture->getSize().y;
-                tile.setScale(scaleX, scaleY);
+                tileSprite.setScale(scaleX, scaleY);
 
-                tile.setPosition(j * TILE_SIZE, i * TILE_SIZE);
+                tileSprite.setPosition((float)(j * TILE_SIZE), (float)(i * TILE_SIZE));
 
-                window.draw(tile);
+                window.draw(tileSprite);
             }
         }
     }
