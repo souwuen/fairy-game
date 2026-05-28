@@ -14,7 +14,7 @@ int main()
     RenderWindow window(VideoMode(640, 480), "Fairy");
     
     Music music;
-    if (!music.openFromFile("C:/fairy-game/sounds/background_music.ogg"))
+    if (!music.openFromFile("C:/fairy-game/sounds/background_2_music.ogg"))
     {
         cout << "ОШИБКА: Музыка не загрузилась!" << endl;
     }
