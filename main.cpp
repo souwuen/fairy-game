@@ -22,7 +22,7 @@ int main()
     Map map;
     physics phys;
 
-    // текстура монет
+    // монеты
     Texture coinTexture;
     coinTexture.loadFromFile("images/coin.png");
 
@@ -30,6 +30,36 @@ int main()
     coins.push_back(Coin(coinTexture, 200, 300));
     coins.push_back(Coin(coinTexture, 300, 250));
     coins.push_back(Coin(coinTexture, 400, 200));
+
+    // 🔥 ПОРТАЛ
+    Texture exitTexture;
+    exitTexture.loadFromFile("images/exit.png");
+    Sprite exitSprite(exitTexture);
+    exitSprite.setPosition(10, 10);
+    exitSprite.setScale(0.15f, 0.15f);
+
+    // 🔥 МЕНЮ
+    Texture menuTexture;
+    menuTexture.loadFromFile("images/menu.png");
+    Sprite menuSprite(menuTexture);
+
+    float menuScale = 0.4f;
+    menuSprite.setScale(menuScale, menuScale);
+
+    float menuW = menuTexture.getSize().x * menuScale;
+    float menuH = menuTexture.getSize().y * menuScale;
+
+    menuSprite.setPosition(
+        (640 - menuW) / 2,
+        (480 - menuH) / 2
+    );
+
+    // 🔥 затемнение
+    RectangleShape darkOverlay;
+    darkOverlay.setSize(Vector2f(640, 480));
+    darkOverlay.setFillColor(Color(0, 0, 0, 150));
+
+    bool levelComplete = false;
 
     float CurrentFrame = 0;
     Clock clock;
@@ -57,37 +87,36 @@ int main()
 
         bool moving = false;
 
-        // ВПРАВО
-        if (Keyboard::isKeyPressed(Keyboard::Right) || Keyboard::isKeyPressed(Keyboard::D))
+        if (!levelComplete)
         {
-            phys.moveRight();
+            if (Keyboard::isKeyPressed(Keyboard::Right) || Keyboard::isKeyPressed(Keyboard::D))
+            {
+                phys.moveRight();
 
-            CurrentFrame += 5 * time;
-            if (CurrentFrame >= 5) CurrentFrame -= 5;
+                CurrentFrame += 5 * time;
+                if (CurrentFrame >= 5) CurrentFrame -= 5;
 
-            p.sprite.setTextureRect(IntRect(144 * int(CurrentFrame), 144, 144, 144));
-            moving = true;
+                p.sprite.setTextureRect(IntRect(144 * int(CurrentFrame), 144, 144, 144));
+                moving = true;
+            }
+
+            if (Keyboard::isKeyPressed(Keyboard::Left) || Keyboard::isKeyPressed(Keyboard::A))
+            {
+                phys.moveLeft();
+
+                CurrentFrame += 5 * time;
+                if (CurrentFrame >= 5) CurrentFrame -= 5;
+
+                p.sprite.setTextureRect(IntRect(144 * int(CurrentFrame), 288, 144, 144));
+                moving = true;
+            }
+
+            if (Keyboard::isKeyPressed(Keyboard::Up) || Keyboard::isKeyPressed(Keyboard::W))
+            {
+                phys.jump();
+            }
         }
 
-        // ВЛЕВО
-        if (Keyboard::isKeyPressed(Keyboard::Left) || Keyboard::isKeyPressed(Keyboard::A))
-        {
-            phys.moveLeft();
-
-            CurrentFrame += 5 * time;
-            if (CurrentFrame >= 5) CurrentFrame -= 5;
-
-            p.sprite.setTextureRect(IntRect(144 * int(CurrentFrame), 288, 144, 144));
-            moving = true;
-        }
-
-        // ПРЫЖОК
-        if (Keyboard::isKeyPressed(Keyboard::Up) || Keyboard::isKeyPressed(Keyboard::W))
-        {
-            phys.jump();
-        }
-
-        // ПОКОЙ
         if (!moving)
         {
             CurrentFrame += 2 * time;
@@ -96,10 +125,10 @@ int main()
             p.sprite.setTextureRect(IntRect(144 * int(CurrentFrame), 0, 144, 144));
         }
 
-        // ФИЗИКА
-        phys.update(p, time, map);
+        if (!levelComplete)
+            phys.update(p, time, map);
 
-        // МОНЕТЫ
+        // монеты
         for (auto& coin : coins)
         {
             coin.update(time, coinTexture);
@@ -111,7 +140,14 @@ int main()
             }
         }
 
-        // ОГРАНИЧЕНИЕ ЭКРАНА
+        // портал
+        if (!levelComplete &&
+            p.sprite.getGlobalBounds().intersects(exitSprite.getGlobalBounds()))
+        {
+            levelComplete = true;
+        }
+
+        // границы экрана
         float x = p.x;
         float y = p.y;
 
@@ -127,18 +163,30 @@ int main()
         p.y = y;
         p.sprite.setPosition(p.x, p.y);
 
-        // РЕНДЕР
+        // 🎮 РЕНДЕР
         window.clear();
-        window.draw(background);
-        map.draw(window);
 
-        for (auto& coin : coins)
+        if (!levelComplete)
         {
-            if (!coin.collected)
-                window.draw(coin.sprite);
+            window.draw(background);
+            map.draw(window);
+
+            for (auto& coin : coins)
+            {
+                if (!coin.collected)
+                    window.draw(coin.sprite);
+            }
+
+            window.draw(exitSprite);
+            window.draw(p.sprite);
+        }
+        else
+        {
+            window.draw(background);   // только фон
+            window.draw(darkOverlay);  // затемнение
+            window.draw(menuSprite);   // меню
         }
 
-        window.draw(p.sprite);
         window.display();
     }
 
