@@ -52,8 +52,9 @@ void Map::draw(RenderWindow& window)
             {
                 tile.setTexture(*currentTexture);
 
-                float scale = (float)TILE_SIZE / currentTexture->getSize().y;
-                tile.setScale(scale, scale);
+                float scaleX = (float)TILE_SIZE / currentTexture->getSize().x;
+                float scaleY = (float)TILE_SIZE / currentTexture->getSize().y;
+                tile.setScale(scaleX, scaleY);
 
                 tile.setPosition(j * TILE_SIZE, i * TILE_SIZE);
 
