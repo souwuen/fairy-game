@@ -13,6 +13,74 @@
 using namespace sf;
 using namespace std;
 
+// Вспомогательная функция для перезагрузки текущего уровня
+void resetLevel(int level, Map& map, Player& p, vector<Coin>& coins, vector<Spike>& spikes,
+                Sprite& exitSprite, Texture& coinTexture, Texture& spikeTexture, Texture& exitTexture,
+                int& coinsCollected, float& startX, float& startY, float spikeYBase)
+{
+    // Загружаем карту
+    map.loadLevel(level);
+
+    // Устанавливаем стартовые координаты игрока
+    if (level == 1) {
+        startX = 0;
+        startY = 300;
+    } else if (level == 2) {
+        // Начало на левом нижнем выступе: строка 18, столбец 0 (там тайл 2 - трава)
+        startX = 0;
+        startY = 18 * Map::TILE_SIZE - p.sprite.getGlobalBounds().height; // 432 - высота
+    }
+    p.x = startX;
+    p.y = startY;
+    p.sprite.setPosition(p.x, p.y);
+
+    // Пересоздаём монеты
+    coins.clear();
+    if (level == 1) {
+        coins.push_back(Coin(coinTexture, 200, 300));
+        coins.push_back(Coin(coinTexture, 300, 250));
+        coins.push_back(Coin(coinTexture, 400, 200));
+    } else if (level == 2) {
+        // Монеты на видных местах (можно изменить)
+        coins.push_back(Coin(coinTexture, 300, 350));
+        coins.push_back(Coin(coinTexture, 500, 300));
+        coins.push_back(Coin(coinTexture, 200, 400));
+    }
+
+    // Пересоздаём шипы
+    spikes.clear();
+    float spikeWidth = spikeTexture.getSize().x * 0.12f;
+
+    if (level == 1) {
+        float spikeY = 19 * Map::TILE_SIZE;   // 456
+        float startSpikeX = 260;
+        for (int i = 0; i < 2; i++) {
+            Spike s(spikeTexture, startSpikeX + i * (spikeWidth + 2), spikeY);
+            s.sprite.setScale(0.12f, 0.12f);
+            spikes.push_back(s);
+        }
+    } else if (level == 2) {
+        // Шипы в ямке: дно на строке 19, столбцы 6 и 7
+        float spikeY = 19 * Map::TILE_SIZE;                // 456 (низ шипа)
+        float spikeX_start = 6 * Map::TILE_SIZE;           // 144
+        for (int i = 0; i < 2; i++) {                      // два шипа рядом
+            Spike s(spikeTexture, spikeX_start + i * (spikeWidth + 2), spikeY);
+            s.sprite.setScale(0.12f, 0.12f);
+            spikes.push_back(s);
+        }
+    }
+
+    // Позиция портала (выхода)
+    if (level == 1) {
+        exitSprite.setPosition(560, 10);
+    } else if (level == 2) {
+        // Правый верхний угол (чтобы был доступен)
+        exitSprite.setPosition(560, 35);
+    }
+
+    coinsCollected = 0;
+}
+
 int main()
 {
     RenderWindow window(VideoMode(640, 480), "Fairy");
@@ -25,94 +93,60 @@ int main()
         music.play();
     }
 
-    float startX = 0;
-    float startY = 300;
-
+    int currentLevel = 1;
+    float startX = 0, startY = 300;
     Player p("hero.png", startX, startY, 144, 144);
 
     Map map;
     physics phys;
 
-    // 💰 МОНЕТЫ
+    // Текстуры
     Texture coinTexture;
     coinTexture.loadFromFile("images/coin.png");
-
-    vector<Coin> coins = {
-        Coin(coinTexture, 200, 300),
-        Coin(coinTexture, 300, 250),
-        Coin(coinTexture, 400, 200)
-    };
-
-    int coinsCollected = 0;
-
-    // 💀 ШИПЫ
     Texture spikeTexture;
     spikeTexture.loadFromFile("images/spike.png");
+    Texture exitTexture;
+    exitTexture.loadFromFile("images/exit.png");
+    Sprite exitSprite(exitTexture);
+    exitSprite.setScale(0.1f, 0.1f);
 
+    vector<Coin> coins;
     vector<Spike> spikes;
+    int coinsCollected = 0;
+    float spikeYBase = 480 - (spikeTexture.getSize().y * 0.12f) + 10;
 
-    float spikeScale = 0.12f;
+    // Загружаем первый уровень
+    resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
+               coinsCollected, startX, startY, spikeYBase);
 
-    // реальный размер
-    float spikeWidth = spikeTexture.getSize().x * spikeScale;
-
-    // ❗ СТАВИМ ЧУТЬ НИЖЕ, ЧЕМ ВЫСОТА ЭКРАНА
-    float spikeY = 480 - (spikeTexture.getSize().y * spikeScale) + 10;
-
-    // 👉 только 2 шипа (как ты просила)
-    float startSpikeX = 260;
-
-    for (int i = 0; i < 2; i++)
-    {
-        Spike s(spikeTexture, startSpikeX + i * (spikeWidth + 2), spikeY);
-        s.sprite.setScale(spikeScale, spikeScale);
-        spikes.push_back(s);
-    }
-
-    // 💰 ИКОНКИ
+    // Иконки монет в меню
     vector<Sprite> coinIcons;
-
     int frameW = coinTexture.getSize().x / 6;
     int frameH = coinTexture.getSize().y;
-
     for (int i = 0; i < 3; i++)
     {
         Sprite icon(coinTexture);
         icon.setTextureRect(IntRect(0, 0, frameW, frameH));
-
         float iconScale = 50.0f / frameW;
         icon.setScale(iconScale, iconScale);
-
         icon.setPosition(235 + i * 60, 70);
         coinIcons.push_back(icon);
     }
 
-    // 🚪 ПОРТАЛ
-    Texture exitTexture;
-    exitTexture.loadFromFile("images/exit.png");
-    Sprite exitSprite(exitTexture);
-    exitSprite.setPosition(10, 10);
-    exitSprite.setScale(0.15f, 0.15f);
-
-    // 📜 МЕНЮ
+    // Меню
     Texture menuTexture;
     menuTexture.loadFromFile("images/menu.png");
     Sprite menuSprite(menuTexture);
-
     float menuScale = 0.5f;
     menuSprite.setScale(menuScale, menuScale);
-
     float menuW = menuTexture.getSize().x * menuScale;
     float menuH = menuTexture.getSize().y * menuScale;
-
     menuSprite.setPosition((640 - menuW) / 2, (480 - menuH) / 2);
-
     RectangleShape darkOverlay(Vector2f(640, 480));
     darkOverlay.setFillColor(Color(0, 0, 0, 150));
 
     Font font;
     font.loadFromFile("fonts/uvKits.ttf");
-
     Texture& fontTex = const_cast<Texture&>(font.getTexture(32));
     fontTex.setSmooth(false);
 
@@ -120,7 +154,6 @@ int main()
     nextText.setFillColor(Color(226, 125, 145));
     nextText.setOutlineColor(Color::Black);
     nextText.setOutlineThickness(2);
-
     Text restartText("RESTART", font, 32);
     restartText.setFillColor(Color(52, 183, 250));
     restartText.setOutlineColor(Color::Black);
@@ -129,7 +162,6 @@ int main()
     FloatRect nb = nextText.getLocalBounds();
     nextText.setOrigin(nb.left + nb.width / 2, nb.top + nb.height / 2);
     nextText.setPosition(320, 187);
-
     FloatRect rb = restartText.getLocalBounds();
     restartText.setOrigin(rb.left + rb.width / 2, rb.top + rb.height / 2);
     restartText.setPosition(320, 365);
@@ -139,14 +171,12 @@ int main()
     float CurrentFrame = 0;
     Clock clock;
 
-    // 🌄 ФОН
     Texture bgTexture;
     bgTexture.loadFromFile("images/background.png");
     Sprite background(bgTexture);
-
     float scaleX = (float)window.getSize().x / bgTexture.getSize().x;
     float scaleY = (float)window.getSize().y / bgTexture.getSize().y;
-    float bgScale = max(scaleX, scaleY); // ← фикс имени
+    float bgScale = max(scaleX, scaleY);
     background.setScale(bgScale, bgScale);
 
     while (window.isOpen())
@@ -163,17 +193,24 @@ int main()
             {
                 Vector2i mouse = Mouse::getPosition(window);
 
+                // Кнопка RESTART
                 if (restartText.getGlobalBounds().contains(mouse.x, mouse.y))
                 {
-                    p.x = startX;
-                    p.y = startY;
-                    p.sprite.setPosition(p.x, p.y);
+                    resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
+                               coinsCollected, startX, startY, spikeYBase);
+                    phys = physics(); // сброс физики
+                    levelComplete = false;
+                }
+                // Кнопка NEXT LEVEL
+                else if (nextText.getGlobalBounds().contains(mouse.x, mouse.y))
+                {
+                    if (currentLevel < 2)   // максимум 2 уровня
+                        currentLevel++;
+                    else
+                        currentLevel = 1;   // зацикливание
 
-                    coinsCollected = 0;
-
-                    for (auto& coin : coins)
-                        coin.collected = false;
-
+                    resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
+                               coinsCollected, startX, startY, spikeYBase);
                     phys = physics();
                     levelComplete = false;
                 }
@@ -216,41 +253,31 @@ int main()
         if (!levelComplete)
             phys.update(p, time, map);
 
-        // 💰 МОНЕТЫ
+        // Монеты
         for (auto& coin : coins)
         {
             coin.update(time, coinTexture);
-
-            if (!coin.collected &&
-                coin.sprite.getGlobalBounds().intersects(p.sprite.getGlobalBounds()))
+            if (!coin.collected && coin.sprite.getGlobalBounds().intersects(p.sprite.getGlobalBounds()))
             {
                 coin.collected = true;
                 coinsCollected++;
             }
         }
 
-        // 💀 ШИПЫ
+        // Шипы
         for (auto& spike : spikes)
         {
-            if (spike.checkCollision(
-                p.x, p.y,
-                p.sprite.getGlobalBounds().width,
-                p.sprite.getGlobalBounds().height))
+            if (spike.checkCollision(p.x, p.y, p.sprite.getGlobalBounds().width, p.sprite.getGlobalBounds().height))
             {
-                p.x = startX;
-                p.y = startY;
-                p.sprite.setPosition(p.x, p.y);
-
-                coinsCollected = 0;
-
-                for (auto& coin : coins)
-                    coin.collected = false;
+                resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
+                           coinsCollected, startX, startY, spikeYBase);
+                phys = physics();
+                // не сбрасываем levelComplete, просто перезапускаем уровень
             }
         }
 
-        // 🚪 ВЫХОД
-        if (!levelComplete &&
-            p.sprite.getGlobalBounds().intersects(exitSprite.getGlobalBounds()))
+        // Выход
+        if (!levelComplete && p.sprite.getGlobalBounds().intersects(exitSprite.getGlobalBounds()))
         {
             levelComplete = true;
         }
@@ -261,14 +288,8 @@ int main()
         {
             window.draw(background);
             map.draw(window);
-
-            for (auto& coin : coins)
-                if (!coin.collected)
-                    window.draw(coin.sprite);
-
-            for (auto& spike : spikes)
-                spike.draw(window);
-
+            for (auto& coin : coins) if (!coin.collected) window.draw(coin.sprite);
+            for (auto& spike : spikes) spike.draw(window);
             window.draw(exitSprite);
             window.draw(p.sprite);
         }
@@ -277,10 +298,8 @@ int main()
             window.draw(background);
             window.draw(darkOverlay);
             window.draw(menuSprite);
-
             for (int i = 0; i < min(coinsCollected, 3); i++)
                 window.draw(coinIcons[i]);
-
             window.draw(nextText);
             window.draw(restartText);
         }
