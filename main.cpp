@@ -22,7 +22,7 @@ int main()
     Map map;
     physics phys;
 
-    // 💰 ТЕКСТУРА МОНЕТ (ВАЖНО!)
+    // текстура монет
     Texture coinTexture;
     coinTexture.loadFromFile("images/coin.png");
 
@@ -30,8 +30,6 @@ int main()
     coins.push_back(Coin(coinTexture, 200, 300));
     coins.push_back(Coin(coinTexture, 300, 250));
     coins.push_back(Coin(coinTexture, 400, 200));
-
-    int coinsCollected = 0;
 
     float CurrentFrame = 0;
     Clock clock;
@@ -44,16 +42,6 @@ int main()
     float scaleY = (float)window.getSize().y / bgTexture.getSize().y;
     float scale = max(scaleX, scaleY);
     background.setScale(scale, scale);
-
-    // текст счётчика
-    Font font;
-    font.loadFromFile("arial.ttf");
-
-    Text coinText;
-    coinText.setFont(font);
-    coinText.setCharacterSize(24);
-    coinText.setFillColor(Color::White);
-    coinText.setPosition(10, 10);
 
     while (window.isOpen())
     {
@@ -120,7 +108,6 @@ int main()
                 coin.sprite.getGlobalBounds().intersects(p.sprite.getGlobalBounds()))
             {
                 coin.collected = true;
-                coinsCollected++; // 💰
             }
         }
 
@@ -140,9 +127,6 @@ int main()
         p.y = y;
         p.sprite.setPosition(p.x, p.y);
 
-        // ОБНОВЛЯЕМ ТЕКСТ
-        coinText.setString("Coins: " + to_string(coinsCollected));
-
         // РЕНДЕР
         window.clear();
         window.draw(background);
@@ -155,8 +139,6 @@ int main()
         }
 
         window.draw(p.sprite);
-        window.draw(coinText);
-
         window.display();
     }
 
