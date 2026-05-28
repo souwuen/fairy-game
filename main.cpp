@@ -3,6 +3,8 @@
 #include "player.h"
 #include "map.h"
 #include "physics.h"
+#include <iostream>   
+#include <SFML/Audio.hpp>
 
 using namespace sf;
 using namespace std;
@@ -10,8 +12,22 @@ using namespace std;
 int main()
 {
     RenderWindow window(VideoMode(640, 480), "Fairy");
+    
+    Music music;
+    if (!music.openFromFile("C:/fairy-game/sounds/background_music.ogg"))
+    {
+        cout << "ОШИБКА: Музыка не загрузилась!" << endl;
+    }
+    else
+    {
+        music.setLoop(true);  // Зацикливание
+        music.setVolume(30);  // Громкость 30%
+        music.play();
+        cout << "Музыка играет!" << endl;
+    }
+    // ============================
 
-    float startX = 0; // самый левый блок
+    float startX = 0;
 
     float playerH = 144 * 0.3f;
     float startY = (Map::HEIGHT - 2) * Map::TILE_SIZE - playerH;
