@@ -3,8 +3,6 @@
 #include "player.h"
 #include "map.h"
 #include "physics.h"
-#include "coin.h"
-#include <vector>
 
 using namespace sf;
 using namespace std;
@@ -13,23 +11,15 @@ int main()
 {
     RenderWindow window(VideoMode(640, 480), "Fairy");
 
-    float startX = 0; 
-    float playerH = 144 * 0.3f; 
+    float startX = 0; // самый левый блок
+
+    float playerH = 144 * 0.3f;
     float startY = (Map::HEIGHT - 2) * Map::TILE_SIZE - playerH;
 
     Player p("hero.png", startX, startY, 144, 144);
     
     Map map;
     physics phys;
-
-    // текстура монет
-    Texture coinTexture;
-    coinTexture.loadFromFile("images/coin.png");
-
-    vector<Coin> coins;
-    coins.push_back(Coin(coinTexture, 200, 300));
-    coins.push_back(Coin(coinTexture, 300, 250));
-    coins.push_back(Coin(coinTexture, 400, 200));
 
     float CurrentFrame = 0;
     Clock clock;
@@ -45,7 +35,7 @@ int main()
 
     while (window.isOpen())
     {
-        float time = clock.getElapsedTime().asSeconds(); 
+        float time = clock.getElapsedTime().asSeconds(); // ✅ НОРМАЛЬНОЕ ВРЕМЯ
         clock.restart();
 
         Event event;
@@ -96,20 +86,8 @@ int main()
             p.sprite.setTextureRect(IntRect(144 * int(CurrentFrame), 0, 144, 144));
         }
 
-        // ФИЗИКА
+        // ОБНОВЛЕНИЕ ФИЗИКИ
         phys.update(p, time, map);
-
-        // МОНЕТЫ
-        for (auto& coin : coins)
-        {
-            coin.update(time, coinTexture);
-
-            if (!coin.collected &&
-                coin.sprite.getGlobalBounds().intersects(p.sprite.getGlobalBounds()))
-            {
-                coin.collected = true;
-            }
-        }
 
         // ОГРАНИЧЕНИЕ ЭКРАНА
         float x = p.x;
@@ -127,17 +105,9 @@ int main()
         p.y = y;
         p.sprite.setPosition(p.x, p.y);
 
-        // РЕНДЕР
         window.clear();
         window.draw(background);
         map.draw(window);
-
-        for (auto& coin : coins)
-        {
-            if (!coin.collected)
-                window.draw(coin.sprite);
-        }
-
         window.draw(p.sprite);
         window.display();
     }

@@ -1,0 +1,28 @@
+# Папки сборки
+build/
+out/
+cmake-build-*/
+x64/
+Debug/
+Release/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.sln
+*.vcxproj
+*.vcxproj.filters
+
+# Mac файлы (чтобы .DS_Store не мешал)
+.DS_Store
+
+# Скомпилированные файлы
+*.exe
+*.o
+*.obj
+*.dll
+game
+
+# SFML library (downloaded separately)
+libs/SFML/
