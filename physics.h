@@ -95,6 +95,31 @@ if (boxes)
                 }
             }
         }
+        if (logs)
+        {
+            for (auto& log : *logs)
+            {
+                FloatRect logBounds = log.getBounds();
+                FloatRect playerBounds = p.sprite.getGlobalBounds();
+
+                // проверка: падаем сверху на платформу
+                if (playerBounds.intersects(logBounds) &&
+                    dy > 0 && // только при падении
+                    playerBounds.top + playerBounds.height - dy <= logBounds.top)
+                {
+                    // ставим игрока НА платформу
+                    p.y = logBounds.top - playerBounds.height;
+                    dy = 0;
+                    onGround = true;
+
+                    // 🔥 ДВИЖЕНИЕ ВМЕСТЕ С ПЛАТФОРМОЙ
+                    if (log.moving)
+                    {
+                        p.y += (log.goDown ? log.speed * time : -log.speed * time);
+                    }
+                }
+            }
+        }
 
         // ===== ПРОВЕРКА СТОИМ ЛИ НА БЛОКЕ =====
         if (boxes)

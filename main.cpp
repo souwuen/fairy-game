@@ -85,22 +85,29 @@ void resetLevel(int level, Map& map, Player& p, vector<Coin>& coins, vector<Spik
         // стоящее над шипами
         logs.emplace_back(
             logTexture,
-            140,
-            370,
+            160,
+            405,
             false
         );
 
         logs.emplace_back(
             logTexture,
-            190,
-            190,
+            200,
+            210,
             false
         );
         // движущееся справа
         logs.emplace_back(
             logTexture,
-            540,
+            600,
             290,
+            true
+        );
+        // движущееся справа
+        logs.emplace_back(
+            logTexture,
+            2,
+            140,
             true
         );
     }
@@ -173,7 +180,7 @@ int main()
     RenderWindow window(VideoMode(640, 480), "Dota 3 beta");
 
     Music music;
-    if (music.openFromFile("sounds/background_2_music.ogg"))
+    if (music.openFromFile("C:/Users/RemSot/fairy-game/sounds/background_2_music.ogg"))
     {
         music.setLoop(true);
         music.setVolume(30);
@@ -347,6 +354,7 @@ int main()
                     resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture, coinsCollected, startX, startY, spikeYBase, boxes, boxTexture, trees, house, treeTexture, houseTexture, logs, logTexture);
                     phys = physics();
                     phys.boxes = &boxes;
+                    phys.logs = &logs;
                     levelComplete = false;
                 }
             }
@@ -434,6 +442,7 @@ int main()
                 resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture, coinsCollected, startX, startY, spikeYBase, boxes, boxTexture, trees, house, treeTexture, houseTexture, logs, logTexture);
                 phys = physics();
                 phys.boxes = &boxes;
+                phys.logs = &logs;
             }
         }
 

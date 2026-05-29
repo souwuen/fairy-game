@@ -43,10 +43,10 @@ public:
             y -= speed * time;
 
         // диапазон движения
-        if (y > startY + 60)
+        if (y > startY + 100)
             goDown = false;
 
-        if (y < startY - 40)
+        if (y < startY - 60)
             goDown = true;
 
         sprite.setPosition(x, y);
