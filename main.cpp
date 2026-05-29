@@ -16,8 +16,9 @@ using namespace std;
 
 // Вспомогательная функция для перезагрузки текущего уровня
 void resetLevel(int level, Map& map, Player& p, vector<Coin>& coins, vector<Spike>& spikes,
-                Sprite& exitSprite, Texture& coinTexture, Texture& spikeTexture, Texture& exitTexture,
-                int& coinsCollected, float& startX, float& startY, float spikeYBase)
+    Sprite& exitSprite, Texture& coinTexture, Texture& spikeTexture, Texture& exitTexture,
+    int& coinsCollected, float& startX, float& startY, float spikeYBase,
+    vector<PushableBox>& boxes, Texture& boxTexture)  // Добавили параметры для блоков
 {
     // Загружаем карту
     map.loadLevel(level);
@@ -26,7 +27,8 @@ void resetLevel(int level, Map& map, Player& p, vector<Coin>& coins, vector<Spik
     if (level == 1) {
         startX = 0;
         startY = 300;
-    } else if (level == 2) {
+    }
+    else if (level == 2) {
         // Начало на левом нижнем выступе: строка 18, столбец 0 (там тайл 2 - трава)
         startX = 0;
         startY = 18 * Map::TILE_SIZE - p.sprite.getGlobalBounds().height; // 432 - высота
@@ -41,7 +43,8 @@ void resetLevel(int level, Map& map, Player& p, vector<Coin>& coins, vector<Spik
         coins.push_back(Coin(coinTexture, 280, 330));
         coins.push_back(Coin(coinTexture, 10, 155));
         coins.push_back(Coin(coinTexture, 360, 100));
-    } else if (level == 2) {
+    }
+    else if (level == 2) {
         // Монеты на видных местах (можно изменить)
         coins.push_back(Coin(coinTexture, 300, 350));
         coins.push_back(Coin(coinTexture, 500, 300));
@@ -52,21 +55,47 @@ void resetLevel(int level, Map& map, Player& p, vector<Coin>& coins, vector<Spik
     spikes.clear();
     float spikeWidth = spikeTexture.getSize().x * 0.12f;
 
-   if (level == 2) {
+    if (level == 2) {
         // Шипы в ямке: дно на строке 19, столбцы 6 и 7
-        float spikeY = 19 * Map::TILE_SIZE;                // 456 (низ шипа)
-        float spikeX_start = 6 * Map::TILE_SIZE;           // 144
-        for (int i = 0; i < 2; i++) {                      // два шипа рядом
-            Spike s(spikeTexture, spikeX_start + i * (spikeWidth + 2), spikeY);
+        float spikeY = 480 - (spikeTexture.getSize().y * 0.12f) + 10;
+        float startSpikeX = 140;
+        for (int i = 0; i < 2; i++) {
+            Spike s(spikeTexture, startSpikeX + i * (spikeWidth + 2), spikeY);
+            s.sprite.setScale(0.12f, 0.12f);
+            spikes.push_back(s);
+        }
+    }
+    else if (level == 1) {
+        // Шипы для первого уровня (оставляем как было)
+        float spikeY = 480 - (spikeTexture.getSize().y * 0.12f) + 10;
+        float startSpikeX = 260;
+        for (int i = 0; i < 2; i++) {
+            Spike s(spikeTexture, startSpikeX + i * (spikeWidth + 2), spikeY);
             s.sprite.setScale(0.12f, 0.12f);
             spikes.push_back(s);
         }
     }
 
+    // 📦 ДЕРЕВЯННЫЕ БЛОКИ - появятся ТОЛЬКО на первом уровне
+    boxes.clear();
+    if (level == 1) {
+        boxes.emplace_back(
+            boxTexture,
+            12 * Map::TILE_SIZE,
+            10 * Map::TILE_SIZE - 32
+        );
+        boxes.emplace_back(
+            boxTexture,
+            40,                    // X = 40
+            160                    // Y = 160
+        );
+    }
+
     // Позиция портала (выхода)
     if (level == 1) {
         exitSprite.setPosition(560, 10);
-    } else if (level == 2) {
+    }
+    else if (level == 2) {
         // Правый верхний угол (чтобы был доступен)
         exitSprite.setPosition(560, 35);
     }
@@ -103,50 +132,21 @@ int main()
     Sprite exitSprite(exitTexture);
     exitSprite.setScale(0.1f, 0.1f);
 
+    // 📦 Текстура деревянного блока
+    Texture boxTexture;
+    boxTexture.loadFromFile("C:/Users/RemSot/fairy-game/images/box.png");
+
     vector<Coin> coins;
     vector<Spike> spikes;
+    vector<PushableBox> boxes;
     int coinsCollected = 0;
     float spikeYBase = 480 - (spikeTexture.getSize().y * 0.12f) + 10;
 
     // Загружаем первый уровень
     resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
-               coinsCollected, startX, startY, spikeYBase);
-
-    // 📦 ДЕРЕВЯННЫЙ БЛОК
-    Texture boxTexture;
-    boxTexture.loadFromFile("C:/Users/RemSot/fairy-game/images/box.png");
-
-    vector<PushableBox> boxes;
-
-    boxes.emplace_back(
-        boxTexture,
-        12 * Map::TILE_SIZE,
-        10 * Map::TILE_SIZE - 32
-    );
-    boxes.emplace_back(
-        boxTexture,
-        40,                    // X = 10 (как у портала)
-        160               // Y = 352 (на земле, не в воздухе) 
-    );
+        coinsCollected, startX, startY, spikeYBase, boxes, boxTexture);  // Передаём блоки
 
     phys.boxes = &boxes;
-
-    float spikeScale = 0.12f;
-    // реальный размер
-    float spikeWidth = spikeTexture.getSize().x * spikeScale;
-
-    // ❗ СТАВИМ ЧУТЬ НИЖЕ, ЧЕМ ВЫСОТА ЭКРАНА
-    float spikeY = 480 - (spikeTexture.getSize().y * spikeScale) + 10;
-
-    // 👉 только 2 шипа (как ты просила)
-    float startSpikeX = 260;
-
-    for (int i = 0; i < 2; i++)
-    {
-        Spike s(spikeTexture, startSpikeX + i * (spikeWidth + 2), spikeY);
-        s.sprite.setScale(spikeScale, spikeScale);
-        spikes.push_back(s);
-    }
 
     // 💰 ИКОНКИ
     vector<Sprite> coinIcons;
@@ -162,6 +162,7 @@ int main()
         coinIcons.push_back(icon);
     }
 
+  
     // Меню
     Texture menuTexture;
     menuTexture.loadFromFile("images/menu.png");
@@ -175,7 +176,7 @@ int main()
     darkOverlay.setFillColor(Color(0, 0, 0, 150));
 
     Font font;
-    font.loadFromFile("fonts/uvKits.ttf");
+    font.loadFromFile("C:/Users/RemSot/fairy-game/fonts/uvKits.ttf");
     Texture& fontTex = const_cast<Texture&>(font.getTexture(32));
     fontTex.setSmooth(false);
 
@@ -207,6 +208,28 @@ int main()
     float scaleY = (float)window.getSize().y / bgTexture.getSize().y;
     float bgScale = max(scaleX, scaleY);
     background.setScale(bgScale, bgScale);
+    // ☁️ ОБЛАКА
+    Texture cloudTexture;
+    cloudTexture.loadFromFile("images/cloud.png");
+
+    vector<Sprite> clouds;
+
+    for (int i = 0; i < 8; i++)
+    {
+        Sprite cloud(cloudTexture);
+
+        // случайный размер
+        float scale = 0.06f + (rand() % 7) / 100.f;
+        cloud.setScale(scale, scale);
+
+        // случайная позиция
+        float x = rand() % 800 - 100; // даже за экраном
+        float y = rand() % 80 - 40;   // выше и не в линию
+
+        cloud.setPosition(x, y);
+
+        clouds.push_back(cloud);
+    }
 
     while (window.isOpen())
     {
@@ -226,8 +249,9 @@ int main()
                 if (restartText.getGlobalBounds().contains(mouse.x, mouse.y))
                 {
                     resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
-                               coinsCollected, startX, startY, spikeYBase);
+                        coinsCollected, startX, startY, spikeYBase, boxes, boxTexture);
                     phys = physics(); // сброс физики
+                    phys.boxes = &boxes; // ВАЖНО: переназначаем указатель
                     levelComplete = false;
                 }
                 // Кнопка NEXT LEVEL
@@ -239,8 +263,9 @@ int main()
                         currentLevel = 1;   // зацикливание
 
                     resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
-                               coinsCollected, startX, startY, spikeYBase);
+                        coinsCollected, startX, startY, spikeYBase, boxes, boxTexture);
                     phys = physics();
+                    phys.boxes = &boxes; // ВАЖНО: переназначаем указатель
                     levelComplete = false;
                 }
             }
@@ -284,7 +309,7 @@ int main()
             // Игрок
             phys.update(p, time, map);
 
-            // Блоки
+            // Блоки - обновляем только если они есть
             for (auto& box : boxes)
             {
                 box.applyGravity(time, map);
@@ -333,13 +358,12 @@ int main()
             if (spike.checkCollision(p.x, p.y, p.sprite.getGlobalBounds().width, p.sprite.getGlobalBounds().height))
             {
                 resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
-                           coinsCollected, startX, startY, spikeYBase);
+                    coinsCollected, startX, startY, spikeYBase, boxes, boxTexture);
                 phys = physics();
+                phys.boxes = &boxes; // ВАЖНО: переназначаем указатель
                 // не сбрасываем levelComplete, просто перезапускаем уровень
             }
         }
-        for (auto& box : boxes)
-            box.draw(window);
 
         // Выход
         if (!levelComplete && p.sprite.getGlobalBounds().intersects(exitSprite.getGlobalBounds()))
@@ -347,11 +371,38 @@ int main()
             levelComplete = true;
         }
 
+        // ☁️ ДВИЖЕНИЕ ОБЛАКОВ
+        for (auto& cloud : clouds)
+        {
+            // разная скорость в зависимости от размера
+            float speed = 50.f + cloud.getScale().x * 120.f;
+
+            cloud.move(speed * time, 0);
+
+            // если улетело вправо
+            if (cloud.getPosition().x > 750)
+            {
+                float scale = 0.03f + (rand() % 4) / 100.f;
+                cloud.setScale(scale, scale);
+
+                cloud.setPosition(
+                    -100.f - rand() % 200,
+                    rand() % 80 - 40
+                );
+            }
+        }
         window.clear();
 
         if (!levelComplete)
         {
             window.draw(background);
+
+            // рисуем облака
+            for (auto& cloud : clouds)
+            {
+                window.draw(cloud);
+            }
+
             map.draw(window);
 
             for (auto& coin : coins)
@@ -361,7 +412,7 @@ int main()
             for (auto& spike : spikes)
                 spike.draw(window);
 
-            for (auto& box : boxes)
+            for (auto& box : boxes)  // Блоки рисуются только если есть
                 box.draw(window);
 
             window.draw(exitSprite);
@@ -370,6 +421,12 @@ int main()
         else
         {
             window.draw(background);
+
+            for (auto& cloud : clouds)
+            {
+                window.draw(cloud);
+            }
+
             window.draw(darkOverlay);
             window.draw(menuSprite);
             for (int i = 0; i < min(coinsCollected, 3); i++)
