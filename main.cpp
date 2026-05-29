@@ -17,7 +17,8 @@ using namespace std;
 // Вспомогательная функция для перезагрузки текущего уровня
 void resetLevel(int level, Map& map, Player& p, vector<Coin>& coins, vector<Spike>& spikes,
                 Sprite& exitSprite, Texture& coinTexture, Texture& spikeTexture, Texture& exitTexture,
-                int& coinsCollected, float& startX, float& startY, float spikeYBase)
+                int& coinsCollected, float& startX, float& startY,
+                vector<Sprite>& trees, Sprite& house, Texture& treeTexture, Texture& houseTexture)
 {
     // Загружаем карту
     map.loadLevel(level);
@@ -42,7 +43,6 @@ void resetLevel(int level, Map& map, Player& p, vector<Coin>& coins, vector<Spik
         coins.push_back(Coin(coinTexture, 10, 155));
         coins.push_back(Coin(coinTexture, 360, 100));
     } else if (level == 2) {
-        // Монеты на видных местах (можно изменить)
         coins.push_back(Coin(coinTexture, 300, 350));
         coins.push_back(Coin(coinTexture, 500, 300));
         coins.push_back(Coin(coinTexture, 200, 400));
@@ -50,15 +50,25 @@ void resetLevel(int level, Map& map, Player& p, vector<Coin>& coins, vector<Spik
 
     // Пересоздаём шипы
     spikes.clear();
-    float spikeWidth = spikeTexture.getSize().x * 0.12f;
+    float spikeScale = 0.12f;
+    float spikeWidth = spikeTexture.getSize().x * spikeScale;
 
-   if (level == 2) {
-        // Шипы в ямке: дно на строке 19, столбцы 6 и 7
-        float spikeY = 19 * Map::TILE_SIZE;                // 456 (низ шипа)
-        float spikeX_start = 6 * Map::TILE_SIZE;           // 144
-        for (int i = 0; i < 2; i++) {                      // два шипа рядом
+    if (level == 1) {
+        // Шипы на самом низу карты (строка 19, Y = 456)
+        float spikeY = 19 * Map::TILE_SIZE;
+        float startSpikeX = 260;
+        for (int i = 0; i < 2; i++) {
+            Spike s(spikeTexture, startSpikeX + i * (spikeWidth + 2), spikeY);
+            s.sprite.setScale(spikeScale, spikeScale);
+            spikes.push_back(s);
+        }
+    } else if (level == 2) {
+        // Шипы в ямке (дно строки 19, столбцы 6 и 7)
+        float spikeY = 19 * Map::TILE_SIZE;
+        float spikeX_start = 6 * Map::TILE_SIZE;
+        for (int i = 0; i < 2; i++) {
             Spike s(spikeTexture, spikeX_start + i * (spikeWidth + 2), spikeY);
-            s.sprite.setScale(0.12f, 0.12f);
+            s.sprite.setScale(spikeScale, spikeScale);
             spikes.push_back(s);
         }
     }
@@ -67,8 +77,45 @@ void resetLevel(int level, Map& map, Player& p, vector<Coin>& coins, vector<Spik
     if (level == 1) {
         exitSprite.setPosition(560, 10);
     } else if (level == 2) {
-        // Правый верхний угол (чтобы был доступен)
         exitSprite.setPosition(560, 35);
+    }
+
+    // 🌲 ДЕКОРАЦИИ (ёлочки и домик)
+    trees.clear();
+    if (level == 1) {
+        // Ёлочки на первом уровне (координаты подберите сами)
+        auto addTree = [&](float x, float y, float scale = 0.3f) {
+            Sprite s(treeTexture);
+            s.setScale(scale, scale);
+            s.setPosition(x, y);
+            trees.push_back(s);
+        };
+        addTree(115, 127, 0.2f);
+        addTree(150, 93);
+        addTree(535, 295, 0.2f);
+        addTree(570, 262);
+
+        // Домик
+        house.setTexture(houseTexture);
+        house.setScale(0.05f, 0.05f);
+        house.setPosition(5, 340);
+    } else if (level == 2) {
+        // Ёлочки на втором уровне
+        auto addTree = [&](float x, float y, float scale = 0.2f) {
+            Sprite s(treeTexture);
+            s.setScale(scale, scale);
+            s.setPosition(x, y);
+            trees.push_back(s);
+        };
+        addTree(600, 100);
+        addTree(580, 120);
+        addTree(300, 450);
+        addTree(50, 420);
+
+        // Домик
+        house.setTexture(houseTexture);
+        house.setScale(0.3f, 0.3f);
+        house.setPosition(5, 340);
     }
 
     coinsCollected = 0;
@@ -76,10 +123,10 @@ void resetLevel(int level, Map& map, Player& p, vector<Coin>& coins, vector<Spik
 
 int main()
 {
-    RenderWindow window(VideoMode(640, 480), "Fairy");
+    RenderWindow window(VideoMode(640, 480), "Dota 3 beta");
 
     Music music;
-    if (music.openFromFile("C:/Users/RemSot/fairy-game/sounds/background_2_music.ogg"))
+    if (music.openFromFile("sounds/background_2_music.ogg"))
     {
         music.setLoop(true);
         music.setVolume(30);
@@ -103,52 +150,35 @@ int main()
     Sprite exitSprite(exitTexture);
     exitSprite.setScale(0.1f, 0.1f);
 
+    // Текстуры для декораций
+    Texture treeTexture;
+    treeTexture.loadFromFile("images/tree.png");
+    Texture houseTexture;
+    houseTexture.loadFromFile("images/house.png");
+
     vector<Coin> coins;
     vector<Spike> spikes;
     int coinsCollected = 0;
-    float spikeYBase = 480 - (spikeTexture.getSize().y * 0.12f) + 10;
+
+    // Вектор для ёлочек и спрайт домика
+    vector<Sprite> trees;
+    Sprite house;
 
     // Загружаем первый уровень
     resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
-               coinsCollected, startX, startY, spikeYBase);
+               coinsCollected, startX, startY, trees, house, treeTexture, houseTexture);
 
-    // 📦 ДЕРЕВЯННЫЙ БЛОК
+    // 📦 ДЕРЕВЯННЫЙ БЛОК (ящик)
     Texture boxTexture;
-    boxTexture.loadFromFile("C:/Users/RemSot/fairy-game/images/box.png");
+    boxTexture.loadFromFile("images/box.png");
 
     vector<PushableBox> boxes;
-
-    boxes.emplace_back(
-        boxTexture,
-        12 * Map::TILE_SIZE,
-        10 * Map::TILE_SIZE - 32
-    );
-    boxes.emplace_back(
-        boxTexture,
-        40,                    // X = 10 (как у портала)
-        160               // Y = 352 (на земле, не в воздухе) 
-    );
+    boxes.emplace_back(boxTexture, 12 * Map::TILE_SIZE, 10 * Map::TILE_SIZE - 32);
+    boxes.emplace_back(boxTexture, 40, 160);
 
     phys.boxes = &boxes;
 
-    float spikeScale = 0.12f;
-    // реальный размер
-    float spikeWidth = spikeTexture.getSize().x * spikeScale;
-
-    // ❗ СТАВИМ ЧУТЬ НИЖЕ, ЧЕМ ВЫСОТА ЭКРАНА
-    float spikeY = 480 - (spikeTexture.getSize().y * spikeScale) + 10;
-
-    // 👉 только 2 шипа (как ты просила)
-    float startSpikeX = 260;
-
-    for (int i = 0; i < 2; i++)
-    {
-        Spike s(spikeTexture, startSpikeX + i * (spikeWidth + 2), spikeY);
-        s.sprite.setScale(spikeScale, spikeScale);
-        spikes.push_back(s);
-    }
-
-    // 💰 ИКОНКИ
+    // 💰 ИКОНКИ для меню
     vector<Sprite> coinIcons;
     int frameW = coinTexture.getSize().x / 6;
     int frameH = coinTexture.getSize().y;
@@ -226,21 +256,23 @@ int main()
                 if (restartText.getGlobalBounds().contains(mouse.x, mouse.y))
                 {
                     resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
-                               coinsCollected, startX, startY, spikeYBase);
-                    phys = physics(); // сброс физики
+                               coinsCollected, startX, startY, trees, house, treeTexture, houseTexture);
+                    phys = physics();
+                    phys.boxes = &boxes; // важно восстановить указатель
                     levelComplete = false;
                 }
                 // Кнопка NEXT LEVEL
                 else if (nextText.getGlobalBounds().contains(mouse.x, mouse.y))
                 {
-                    if (currentLevel < 2)   // максимум 2 уровня
+                    if (currentLevel < 2)
                         currentLevel++;
                     else
-                        currentLevel = 1;   // зацикливание
+                        currentLevel = 1;
 
                     resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
-                               coinsCollected, startX, startY, spikeYBase);
+                               coinsCollected, startX, startY, trees, house, treeTexture, houseTexture);
                     phys = physics();
+                    phys.boxes = &boxes;
                     levelComplete = false;
                 }
             }
@@ -284,39 +316,27 @@ int main()
             // Игрок
             phys.update(p, time, map);
 
-            // Блоки
+            // Блоки (ящики)
             for (auto& box : boxes)
             {
                 box.applyGravity(time, map);
 
                 float pushDir = 0.f;
-
                 if (box.checkPlayerCollision(
-                    p.x,
-                    p.y,
+                    p.x, p.y,
                     p.sprite.getGlobalBounds().width,
                     p.sprite.getGlobalBounds().height,
                     pushDir))
                 {
-                    // Толкание только при движении
-                    if ((Keyboard::isKeyPressed(Keyboard::A) ||
-                        Keyboard::isKeyPressed(Keyboard::Left))
-                        && pushDir == -1)
-                    {
+                    if ((Keyboard::isKeyPressed(Keyboard::A) || Keyboard::isKeyPressed(Keyboard::Left)) && pushDir == -1)
                         box.push(pushDir, time, map);
-                    }
-
-                    if ((Keyboard::isKeyPressed(Keyboard::D) ||
-                        Keyboard::isKeyPressed(Keyboard::Right))
-                        && pushDir == 1)
-                    {
+                    if ((Keyboard::isKeyPressed(Keyboard::D) || Keyboard::isKeyPressed(Keyboard::Right)) && pushDir == 1)
                         box.push(pushDir, time, map);
-                    }
                 }
             }
         }
 
-        // 💰 МОНЕТЫ
+        // Монеты
         for (auto& coin : coins)
         {
             coin.update(time, coinTexture);
@@ -333,13 +353,11 @@ int main()
             if (spike.checkCollision(p.x, p.y, p.sprite.getGlobalBounds().width, p.sprite.getGlobalBounds().height))
             {
                 resetLevel(currentLevel, map, p, coins, spikes, exitSprite, coinTexture, spikeTexture, exitTexture,
-                           coinsCollected, startX, startY, spikeYBase);
+                           coinsCollected, startX, startY, trees, house, treeTexture, houseTexture);
                 phys = physics();
-                // не сбрасываем levelComplete, просто перезапускаем уровень
+                phys.boxes = &boxes;
             }
         }
-        for (auto& box : boxes)
-            box.draw(window);
 
         // Выход
         if (!levelComplete && p.sprite.getGlobalBounds().intersects(exitSprite.getGlobalBounds()))
@@ -354,16 +372,13 @@ int main()
             window.draw(background);
             map.draw(window);
 
-            for (auto& coin : coins)
-                if (!coin.collected)
-                    window.draw(coin.sprite);
+            // Декорации
+            for (auto& t : trees) window.draw(t);
+            window.draw(house);
 
-            for (auto& spike : spikes)
-                spike.draw(window);
-
-            for (auto& box : boxes)
-                box.draw(window);
-
+            for (auto& coin : coins) if (!coin.collected) window.draw(coin.sprite);
+            for (auto& spike : spikes) spike.draw(window);
+            for (auto& box : boxes) box.draw(window);
             window.draw(exitSprite);
             window.draw(p.sprite);
         }
