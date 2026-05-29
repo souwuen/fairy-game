@@ -29,9 +29,9 @@ Map::Map()
         for (int j = 0; j < WIDTH; j++)
             TileMap[i][j] = temp[i][j];
 
-    t_ground.loadFromFile("images/ground.png");
-    t_grass.loadFromFile("images/grass_block.png");
-    t_platform.loadFromFile("images/platform.png");
+    t_ground.loadFromFile("C:/Users/RemSot/fairy-game/images/ground.png");
+    t_grass.loadFromFile("C:/Users/RemSot/fairy-game/images/grass_block.png");
+    t_platform.loadFromFile("C:/Users/RemSot/fairy-game/images/platform.png");
 
     if (t_ground.getSize().x == 0) {
         Image img;
@@ -72,8 +72,9 @@ void Map::draw(RenderWindow& window) // БЕЗ точки с запятой!
 
                 if (TileMap[i][j] == 3) // platform
                 {
-                    float scale = (float)TILE_SIZE / currentTexture->getSize().y;
-                    tileSprite.setScale(scale, scale); // сохраняем пропорции
+                    float scaleX = (float)TILE_SIZE / currentTexture->getSize().y;
+                    float scaleY = (float)TILE_SIZE / currentTexture->getSize().y;
+                    tileSprite.setScale(scaleX, scaleY); // ← масштабируем правильно
                 }
                 else
                 {

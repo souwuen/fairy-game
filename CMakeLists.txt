@@ -8,12 +8,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Добавляем SFML
 add_subdirectory(libs/SFML)
 
+
 # Создаём игру
 add_executable(Fairy
     main.cpp
     player.cpp
     map.cpp
-)
+ "pushable_box.h")
 
 # Подключаем SFML
 target_link_libraries(Fairy PRIVATE

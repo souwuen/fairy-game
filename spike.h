@@ -12,11 +12,13 @@ struct Spike {
         sprite.setScale(scale, scale);
 
         // 🔥 СТАВИМ ТОЧКУ ПРИВЯЗКИ В НИЗ СПРАЙТА
-        sprite.setOrigin(0, sprite.getLocalBounds().height);
+        if (y < 400) {
+            y = 410;  // заставляем быть ниже
+        }
 
-        // ❗ теперь y = НИЗ экрана
         sprite.setPosition(x, y);
     }
+
 
     bool checkCollision(float px, float py, float pw, float ph)
     {

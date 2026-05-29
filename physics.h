@@ -1,6 +1,8 @@
 #pragma once
 #include "player.h"
 #include "map.h"
+#include "pushable_box.h"
+#include <vector>
 
 class physics
 {
@@ -9,9 +11,10 @@ public:
     float dy = 0;
 
     float gravity = 1000;     // гравитация (пиксели/сек²)
-    float jumpSpeed = -450;   // сила прыжка
+    float jumpSpeed = -320;   // сила прыжка
 
     bool onGround = false;
+    std::vector<PushableBox>* boxes = nullptr;
 
     void update(Player& p, float time, Map& map)
     {
@@ -33,6 +36,41 @@ public:
         int tileFeet = (int)(p.y + offsetY + h) / Map::TILE_SIZE;
 
         onGround = false;
+
+        // ===== ПРОВЕРКА СТОИМ ЛИ НА БЛОКЕ =====
+if (boxes)
+{
+    for (auto& box : *boxes)
+    {
+        sf::FloatRect playerBounds(
+            p.x + offsetX,
+            p.y + offsetY,
+            w,
+            h
+        );
+
+        sf::FloatRect boxBounds =
+            box.sprite.getGlobalBounds();
+
+        // Проверка: игрок падает сверху на блок
+        if (dy >= 0 &&
+            playerBounds.intersects(boxBounds))
+        {
+            float playerBottom =
+                p.y + offsetY + h;
+
+            if (playerBottom <
+                box.y + 20)
+            {
+                p.y =
+                    box.y - h - offsetY;
+
+                dy = 0;
+                onGround = true;
+            }
+        }
+    }
+}
 
         // Проверка падения вниз
         if (dy >= 0 && tileFeet >= 0 && tileFeet < Map::HEIGHT)
@@ -58,6 +96,43 @@ public:
 
         // ========== ДВИЖЕНИЕ ПО X ==========
         p.x += dx * time;
+        // ===== СТОЛКНОВЕНИЕ С БЛОКАМИ =====
+        if (boxes)
+        {
+            for (auto& box : *boxes)
+            {
+                sf::FloatRect playerBounds(
+                    p.x + offsetX,
+                    p.y + offsetY,
+                    w,
+                    h
+                );
+
+                sf::FloatRect boxBounds =
+                    box.sprite.getGlobalBounds();
+
+                if (playerBounds.intersects(boxBounds))
+                {
+                    // Справа в блок
+                    if (dx > 0)
+                    {
+                        p.x =
+                            box.x - w - offsetX;
+                    }
+
+                    // Слева в блок
+                    if (dx < 0)
+                    {
+                        p.x =
+                            box.x +
+                            boxBounds.width -
+                            offsetX;
+                    }
+
+                    dx = 0;
+                }
+            }
+        }
 
         // Проверяем столкновение слева/справа
         int tileTop = (int)(p.y + offsetY + 5) / Map::TILE_SIZE;

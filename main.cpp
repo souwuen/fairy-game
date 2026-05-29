@@ -9,6 +9,7 @@
 #include "physics.h"
 #include "coin.h"
 #include "spike.h"
+#include "pushable_box.h"
 
 using namespace sf;
 using namespace std;
@@ -18,7 +19,7 @@ int main()
     RenderWindow window(VideoMode(640, 480), "Fairy");
 
     Music music;
-    if (music.openFromFile("sounds/background_2_music.ogg"))
+    if (music.openFromFile("C:/Users/RemSot/fairy-game/sounds/background_2_music.ogg"))
     {
         music.setLoop(true);
         music.setVolume(30);
@@ -35,12 +36,13 @@ int main()
 
     // 💰 МОНЕТЫ
     Texture coinTexture;
-    coinTexture.loadFromFile("images/coin.png");
+    coinTexture.loadFromFile("C:/Users/RemSot/fairy-game/images/coin.png");
 
     vector<Coin> coins = {
-        Coin(coinTexture, 200, 300),
-        Coin(coinTexture, 300, 250),
-        Coin(coinTexture, 400, 200)
+        Coin(coinTexture, 280, 330),
+        Coin(coinTexture, 10, 155),
+        Coin(coinTexture, 360, 100),
+
     };
 
     int coinsCollected = 0;
@@ -53,6 +55,26 @@ int main()
 
     float spikeScale = 0.12f;
 
+    // 📦 ДЕРЕВЯННЫЙ БЛОК
+    Texture boxTexture;
+    boxTexture.loadFromFile("C:/Users/RemSot/fairy-game/images/box.png");
+
+    vector<PushableBox> boxes;
+
+    boxes.emplace_back(
+        boxTexture,
+        12 * Map::TILE_SIZE,
+        10 * Map::TILE_SIZE - 32
+    );
+    boxes.emplace_back(
+        boxTexture,
+        40,                    // X = 10 (как у портала)
+        160               // Y = 352 (на земле, не в воздухе) 
+    );
+
+    phys.boxes = &boxes;
+
+   
     // реальный размер
     float spikeWidth = spikeTexture.getSize().x * spikeScale;
 
@@ -91,7 +113,7 @@ int main()
     Texture exitTexture;
     exitTexture.loadFromFile("images/exit.png");
     Sprite exitSprite(exitTexture);
-    exitSprite.setPosition(10, 10);
+    exitSprite.setPosition(550, 10);
     exitSprite.setScale(0.15f, 0.15f);
 
     // 📜 МЕНЮ
@@ -214,7 +236,41 @@ int main()
         }
 
         if (!levelComplete)
+        {
+            // Игрок
             phys.update(p, time, map);
+
+            // Блоки
+            for (auto& box : boxes)
+            {
+                box.applyGravity(time, map);
+
+                float pushDir = 0.f;
+
+                if (box.checkPlayerCollision(
+                    p.x,
+                    p.y,
+                    p.sprite.getGlobalBounds().width,
+                    p.sprite.getGlobalBounds().height,
+                    pushDir))
+                {
+                    // Толкание только при движении
+                    if ((Keyboard::isKeyPressed(Keyboard::A) ||
+                        Keyboard::isKeyPressed(Keyboard::Left))
+                        && pushDir == -1)
+                    {
+                        box.push(pushDir, time, map);
+                    }
+
+                    if ((Keyboard::isKeyPressed(Keyboard::D) ||
+                        Keyboard::isKeyPressed(Keyboard::Right))
+                        && pushDir == 1)
+                    {
+                        box.push(pushDir, time, map);
+                    }
+                }
+            }
+        }
 
         // 💰 МОНЕТЫ
         for (auto& coin : coins)
@@ -247,6 +303,8 @@ int main()
                     coin.collected = false;
             }
         }
+        for (auto& box : boxes)
+            box.draw(window);
 
         // 🚪 ВЫХОД
         if (!levelComplete &&
@@ -268,6 +326,9 @@ int main()
 
             for (auto& spike : spikes)
                 spike.draw(window);
+
+            for (auto& box : boxes)
+                box.draw(window);
 
             window.draw(exitSprite);
             window.draw(p.sprite);
