@@ -15,6 +15,6 @@ public:
     Texture t_ground, t_grass, t_platform;
 
     Map();
-
+    void loadLevel(int level);   // новая функция
     void draw(RenderWindow& window);
 };
