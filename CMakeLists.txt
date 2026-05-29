@@ -14,7 +14,7 @@ add_executable(Fairy
     main.cpp
     player.cpp
     map.cpp
- "pushable_box.h")
+ "pushable_box.h" "log.h")
 
 # Подключаем SFML
 target_link_libraries(Fairy PRIVATE

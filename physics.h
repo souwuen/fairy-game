@@ -3,6 +3,7 @@
 #include "map.h"
 #include "pushable_box.h"
 #include <vector>
+#include "log.h"
 
 class physics
 {
@@ -15,6 +16,7 @@ public:
 
     bool onGround = false;
     std::vector<PushableBox>* boxes = nullptr;
+    std::vector<Log>* logs = nullptr;
 
     void update(Player& p, float time, Map& map)
     {
@@ -94,8 +96,124 @@ if (boxes)
             }
         }
 
+        // ===== ПРОВЕРКА СТОИМ ЛИ НА БЛОКЕ =====
+        if (boxes)
+        {
+            for (auto& box : *boxes)
+            {
+                sf::FloatRect playerBounds(
+                    p.x + offsetX,
+                    p.y + offsetY,
+                    w,
+                    h
+                );
+
+                sf::FloatRect boxBounds =
+                    box.sprite.getGlobalBounds();
+
+                // Проверка: игрок падает сверху на блок
+                if (dy >= 0 &&
+                    playerBounds.intersects(boxBounds))
+                {
+                    float playerBottom =
+                        p.y + offsetY + h;
+
+                    if (playerBottom <
+                        box.y + 20)
+                    {
+                        p.y =
+                            box.y - h - offsetY;
+
+                        dy = 0;
+                        onGround = true;
+                    }
+                }
+            }
+        }
+
+        // Проверка падения вниз
+        if (dy >= 0 && tileFeet >= 0 && tileFeet < Map::HEIGHT)
+        {
+            // Проверяем все 3 точки
+            for (int checkX = tileLeftFoot; checkX <= tileRightFoot; checkX++)
+            {
+                if (checkX >= 0 && checkX < Map::WIDTH)
+                {
+                    if (map.TileMap[tileFeet][checkX] == 1 ||
+                        map.TileMap[tileFeet][checkX] == 2 ||
+                        map.TileMap[tileFeet][checkX] == 3)  // ← платформа тоже твёрдая
+                    {
+                        // Приземляемся РОВНО на блок
+                        p.y = tileFeet * Map::TILE_SIZE - h - offsetY;
+                        dy = 0;
+                        onGround = true;
+                        break;
+                    }
+                }
+            }
+        }
+if (logs)
+{
+    for (auto& log : *logs)
+    {
+        sf::FloatRect playerBounds(
+            p.x + offsetX,
+            p.y + offsetY,
+            w,
+            h
+        );
+
+        sf::FloatRect logBounds = log.sprite.getGlobalBounds();
+
+        // Проверка на падение на бревно
+        if (dy >= 0 && playerBounds.intersects(logBounds))
+        {
+            float playerBottom = p.y + offsetY + h;
+
+            if (playerBottom < log.y + 20) // Проверка, что игрок падает сверху
+            {
+                p.y = log.y - h - offsetY; // Устанавливаем игрока на верх бревна
+                dy = 0; // Сбрасываем вертикальную скорость
+                onGround = true; // Игрок на земле
+                break;
+            }
+        }
+    }
+}
         // ========== ДВИЖЕНИЕ ПО X ==========
         p.x += dx * time;
+        // Проверка столкновения с бревнами
+        if (logs)
+        {
+            for (auto& log : *logs)
+            {
+                sf::FloatRect playerBounds(
+                    p.x + offsetX,
+                    p.y + offsetY,
+                    w,
+                    h
+                );
+
+                sf::FloatRect logBounds = log.sprite.getGlobalBounds();
+
+                if (playerBounds.intersects(logBounds))
+                {
+                    // Справа в бревно
+                    if (dx > 0)
+                    {
+                        p.x = log.x - w - offsetX; // Устанавливаем игрока слева от бревна
+                    }
+
+                    // Слева в бревно
+                    if (dx < 0)
+                    {
+                        p.x = log.x + logBounds.width - offsetX; // Устанавливаем игрока справа от бревна
+                    }
+
+                    dx = 0; // Сбрасываем горизонтальную скорость
+                }
+            }
+        }
         // ===== СТОЛКНОВЕНИЕ С БЛОКАМИ =====
         if (boxes)
         {
